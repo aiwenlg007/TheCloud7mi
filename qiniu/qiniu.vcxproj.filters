@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{ce0fcdc8-84c9-4068-b15f-b66a61db17a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\b64">
+      <UniqueIdentifier>{dc45b057-23e6-42d9-b06f-dff84babd1a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\cJSON">
+      <UniqueIdentifier>{d7ec0323-7da0-41de-9c59-737c17822dfd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\emu-posix">
+      <UniqueIdentifier>{8d024e1f-f6a4-4cda-9fe9-4eb2a3913d90}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="auth_mac.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="base.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="base_io.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="conf.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="http.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="io.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="resumable_io.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="rs.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\b64\b64.c">
+      <Filter>ThirdParty\b64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\b64\urlsafe_b64.c">
+      <Filter>ThirdParty\b64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cJSON\cJSON.c">
+      <Filter>ThirdParty\cJSON</Filter>
+    </ClCompile>
+    <ClCompile Include="..\c-sdk-wdeps\emu-posix\emu_posix.c">
+      <Filter>ThirdParty\emu-posix</Filter>
+    </ClCompile>
+    <ClCompile Include="demo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="base.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="conf.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="http.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="io.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resumable_io.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="rs.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\b64\urlsafe_b64.h">
+      <Filter>ThirdParty\b64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\b64\b64.h">
+      <Filter>ThirdParty\b64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cJSON\cJSON.h">
+      <Filter>ThirdParty\cJSON</Filter>
+    </ClInclude>
+    <ClInclude Include="..\c-sdk-wdeps\emu-posix\emu_posix.h">
+      <Filter>ThirdParty\emu-posix</Filter>
+    </ClInclude>
+    <ClInclude Include="UrlCoder.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
