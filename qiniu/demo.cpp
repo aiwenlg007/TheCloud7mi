@@ -77,6 +77,52 @@ typedef vector<BulketInfo> BulketInfoVec;
 BlkPutRetVec gBlkPutRetVec;
 BulketInfoVec gBlkInfoVec;
 
+
+Qiniu_Rio_PutExtra gExtra;
+
+// 获取文件大小
+Qiniu_Int64 Qiniu_Get_PutFile_Size( const char* localFile)
+{ 
+	Qiniu_Int64 fsize;
+	Qiniu_FileInfo fi;
+	Qiniu_File* f;
+	Qiniu_Error err = Qiniu_File_Open(&f, localFile);
+	if (err.code != 200) {
+		return 0;
+	}
+	err = Qiniu_File_Stat(f, &fi);
+	if (err.code == 200) {
+		fsize = Qiniu_FileInfo_Fsize(fi); 
+	}
+	Qiniu_File_Close(f);
+	return fsize;
+}
+// 初始化文件Block 的Progress
+static int InitExtra(
+	Qiniu_Rio_PutExtra* self, Qiniu_Int64 fsize)
+{
+	size_t cbprog;
+	int  blockCnt = Qiniu_Rio_BlockCount(fsize);
+
+	memset(self, 0, sizeof(Qiniu_Rio_PutExtra)); 
+
+	cbprog = sizeof(Qiniu_Rio_BlkputRet) * blockCnt;
+	self->progresses = (Qiniu_Rio_BlkputRet*)malloc(cbprog);
+	self->blockCnt = blockCnt;
+
+	memset(self->progresses, 0, cbprog); 
+	for (int i = 0; i< blockCnt; ++i)
+	{
+		self->progresses[i].offset = 0;
+	} 
+	return 0;
+}
+// 每个Chunk 上传成功后的回调函数
+static void notifyResult(void* self, int blkIdx, int blkSize, Qiniu_Rio_BlkputRet* ret) 
+{
+	Qiniu_Rio_BlkputRet_Assign(ret,&gExtra.progresses[blkSize]); 
+}
+
 void Demo_Rio_FnNotify(void* recvr, int blkIdx, int blkSize, Qiniu_Rio_BlkputRet* ret)
 {
 	ofstream ofile;
@@ -109,14 +155,7 @@ void ReadRioDat()
 		while(!ifile.eof())
 		{ 
 			BulketInfo blkInfo;
-			char szRn;
-		/*	ifile>>blkInfo.iBulketIndex>>szRn
-				>>blkInfo.iBulkSize>>szRn
-				>>blkInfo.szHost>>szRn
-				>>blkInfo.szCtx>>szRn
-				>>blkInfo.uCRC32>>szRn
-				>>blkInfo.uCheckSum>>szRn;
-*/
+			char szRn; 
 			ifile>>blkInfo.iBulketIndex
 				>>blkInfo.iBulkSize
 				>>blkInfo.szHost
@@ -138,7 +177,7 @@ Qiniu_Error resumable_upload(Qiniu_Client* client, char* uptoken, const char* ke
 	extra.bucket = bucket; 
 	Qiniu_Rio_PutRet  ret;
 	Qiniu_Zero(ret);
-	extra.notify = Demo_Rio_FnNotify;
+	extra.notify = notifyResult;
 // 
 // 	int iBlockCount = gBlkInfoVec[0].iBulkSize;
 // 	int iBlockSize = sizeof(Qiniu_Rio_BlkputRet) * gBlkInfoVec;
@@ -155,9 +194,8 @@ Qiniu_Error resumable_upload(Qiniu_Client* client, char* uptoken, const char* ke
 
 void main()
 {
-
-	ReadRioDat();
-
+	InitExtra(&gExtra,Qiniu_Get_PutFile_Size("E:\\Lumi\\ShouldItMatter.mp3"));
+	ReadRioDat(); 
 
 	Qiniu_Mac  qiniu_mac;
 	qiniu_mac.accessKey = QINIU_ACCESS_KEY1;

@@ -133,7 +133,7 @@ static void Qiniu_Rio_BlkputRet_Cleanup(Qiniu_Rio_BlkputRet* self)
 	}
 }
 
-static void Qiniu_Rio_BlkputRet_Assign(Qiniu_Rio_BlkputRet* self, Qiniu_Rio_BlkputRet* ret)
+void Qiniu_Rio_BlkputRet_Assign(Qiniu_Rio_BlkputRet* self, Qiniu_Rio_BlkputRet* ret)
 {
 	char* p;
 	size_t n1 = 0, n2 = 0, n3 = 0;

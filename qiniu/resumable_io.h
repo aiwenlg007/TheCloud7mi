@@ -124,7 +124,9 @@ Qiniu_Error Qiniu_Rio_Put(
 Qiniu_Error Qiniu_Rio_PutFile(
 	Qiniu_Client* self, Qiniu_Rio_PutRet* ret,
 	const char* uptoken, const char* key, const char* localFile, Qiniu_Rio_PutExtra* extra);
+/*============================================================================*/
 
+void Qiniu_Rio_BlkputRet_Assign(Qiniu_Rio_BlkputRet* self, Qiniu_Rio_BlkputRet* ret);
 /*============================================================================*/
 
 #pragma pack()
