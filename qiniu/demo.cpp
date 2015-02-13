@@ -7,6 +7,8 @@
 #include <fstream>
 
 #include <vector>
+#include <map>
+
 #include <atlenc.h> // for base64
 #include "UrlCoder.h"
 
@@ -79,6 +81,8 @@ BulketInfoVec gBlkInfoVec;
 
 
 Qiniu_Rio_PutExtra gExtra;
+std::map<int,int> gRioBlkMap;
+bool bNeedExtra = false;
 
 // 获取文件大小
 Qiniu_Int64 Qiniu_Get_PutFile_Size( const char* localFile)
@@ -114,15 +118,98 @@ static int InitExtra(
 	for (int i = 0; i< blockCnt; ++i)
 	{
 		self->progresses[i].offset = 0;
+		self->progresses[i].ctx = (char*)malloc(512);
+		memset((void *)self->progresses[i].ctx, 0, 512); 
+		self->progresses[i].host = (char*)malloc(512);
+		memset((void *)self->progresses[i].host, 0, 512); 
+		self->progresses[i].checksum = (char*)malloc(128);
+		memset((void *)self->progresses[i].checksum, 0, 128); 
 	} 
 	return 0;
 }
 // 每个Chunk 上传成功后的回调函数
 static void notifyResult(void* self, int blkIdx, int blkSize, Qiniu_Rio_BlkputRet* ret) 
 {
-	Qiniu_Rio_BlkputRet_Assign(ret,&gExtra.progresses[blkSize]); 
-}
+	//Qiniu_Rio_BlkputRet_Assign(&gExtra.progresses[blkSize],ret);
+	gExtra.progresses[blkIdx].offset = ret->offset;
+	if(NULL == gExtra.progresses[blkIdx].ctx ) 
+	{
+		gExtra.progresses[blkIdx].ctx = (char*)malloc(512);
+		memset((void*)gExtra.progresses[blkIdx].ctx,0,512);
+	}
+	Qiniu_Rio_BlkputRet_Assign(&gExtra.progresses[blkIdx],ret);
+	ofstream ofile;
+	ofile.open("Rio.dat");
+	char szWriteLine[2048] = {0};
+	
+	for (int i = 0; i < gExtra.blockCnt; ++i)
+	{ 
+		char szCtx[512] = "null";
+		char szCrCheckSum[128] = "null";
+		char szHost[512] = "null";
+		if (NULL != gExtra.progresses[i].ctx && strlen(gExtra.progresses[i].ctx) > 0)
+		{
+			memcpy(szCtx, gExtra.progresses[i].ctx,512);
+		}
+		if (strlen(gExtra.progresses[i].host) > 0)
+		{ 
+			memcpy(szHost, gExtra.progresses[i].host,512);
+		}
+		if (strlen(gExtra.progresses[i].checksum) > 0)
+		{
+			memcpy(szCrCheckSum, gExtra.progresses[i].checksum,128); 
+		}
 
+		ofile<<i<<"\t"
+			<<gExtra.progresses[i].offset<<"\t"
+			<<szHost<<"\t"
+			<<szCtx<<"\t"
+			<<szCrCheckSum<<"\t" 
+			<<gExtra.progresses[i].crc32<<"\t" 
+			<<endl;
+	
+	}
+	ofile.close();
+}
+bool Read_Rio_Dat()
+{ 
+	ifstream ifile;
+	ifile.open("Rio.dat",ios_base::_Nocreate);
+	ifile.seekg(0,ios_base::end);
+	Qiniu_Uint32 fsize=ifile.tellg();
+	if(!fsize || fsize <= 0)
+	{
+		cout<<"Empty file."<<endl;
+	}
+	else 
+	{
+		ifile.seekg(0);
+		while(!ifile.eof())
+		{    
+			BulketInfo blkInfo;  
+			ifile>>blkInfo.iBulketIndex  
+				>>blkInfo.uOffset
+				>>blkInfo.szHost
+				>>blkInfo.szCtx 
+				>>blkInfo.szCheckSum
+				>>blkInfo.uCRC32;
+			if (gExtra.blockCnt > 0  && blkInfo.uOffset >= 0  && blkInfo.iBulketIndex < gExtra.blockCnt && strlen(blkInfo.szHost) > 0) 
+			{
+				gExtra.progresses[blkInfo.iBulketIndex].offset = blkInfo.uOffset;
+				memcpy((void*)gExtra.progresses[blkInfo.iBulketIndex].host,blkInfo.szHost,strlen(blkInfo.szHost));
+				if(0 != strcmp(blkInfo.szCtx,"null"))
+				{
+					memcpy((void*)gExtra.progresses[blkInfo.iBulketIndex].ctx,blkInfo.szCtx,strlen(blkInfo.szCtx));
+				}
+				memcpy((void*)gExtra.progresses[blkInfo.iBulketIndex].checksum,blkInfo.szCheckSum,strlen(blkInfo.szCheckSum)); 
+				gExtra.progresses[blkInfo.iBulketIndex].crc32 = blkInfo.uCRC32;
+			}
+		} 
+	}  
+	ifile.close();
+
+	return (fsize > 0);
+}
 void Demo_Rio_FnNotify(void* recvr, int blkIdx, int blkSize, Qiniu_Rio_BlkputRet* ret)
 {
 	ofstream ofile;
@@ -139,7 +226,7 @@ void Demo_Rio_FnNotify(void* recvr, int blkIdx, int blkSize, Qiniu_Rio_BlkputRet
 	gBlkPutRetVec.push_back(*ret);
 	printf("ret[%d]: %s,%s,%d,%d \n",blkIdx,ret->host,ret->ctx,ret->crc32,ret->checksum);
 }
-void ReadRioDat()
+bool Read_Rio_Dat_old()
 { 
 	ifstream ifile;
 	ifile.open("Rio.dat",ios_base::_Nocreate);
@@ -168,6 +255,8 @@ void ReadRioDat()
 		} 
 	}  
 	ifile.close();
+	 
+	return (fsize > 0);
 }
 Qiniu_Error resumable_upload(Qiniu_Client* client, char* uptoken, const char* key, const char* localFile)
 {
@@ -182,8 +271,9 @@ Qiniu_Error resumable_upload(Qiniu_Client* client, char* uptoken, const char* ke
 // 	int iBlockCount = gBlkInfoVec[0].iBulkSize;
 // 	int iBlockSize = sizeof(Qiniu_Rio_BlkputRet) * gBlkInfoVec;
 // 	self->progresses = (Qiniu_Rio_BlkputRet*)malloc(cbprog);
-
-	err = Qiniu_Rio_PutFile(client, &ret, uptoken, key, localFile, &extra);
+	gExtra.bucket = bucket;
+	gExtra.notify = notifyResult;
+	err = Qiniu_Rio_PutFile(client, &ret, uptoken, key, localFile, &gExtra);
 	if (ret.key  && ret.hash)
 	{
 		printf("file Key= %s ,hash = %s \n",ret.key,ret.hash);
@@ -194,8 +284,25 @@ Qiniu_Error resumable_upload(Qiniu_Client* client, char* uptoken, const char* ke
 
 void main()
 {
+	
 	InitExtra(&gExtra,Qiniu_Get_PutFile_Size("E:\\Lumi\\ShouldItMatter.mp3"));
-	ReadRioDat(); 
+	// if the file size is zero ,we need to initial the basic block progress
+	if(Read_Rio_Dat())
+	{
+	    bNeedExtra = true;
+	}
+	 
+	for (int i = 0 ; i < gExtra.blockCnt; ++i)
+	{ 
+		if ( strlen(gExtra.progresses[i].ctx) <= 0 || 0 ==  strcmp (gExtra.progresses[i].ctx,"null"))
+		{
+			free((void*)gExtra.progresses[i].ctx);
+			gExtra.progresses[i].ctx = NULL;
+		}
+	}
+	 
+
+	
 
 	Qiniu_Mac  qiniu_mac;
 	qiniu_mac.accessKey = QINIU_ACCESS_KEY1;
@@ -218,7 +325,7 @@ void main()
 	/*
 	resumable_upload的第三个参数是Key,但是提示要key进行utf8编码才行
 	*/  
-	err  = resumable_upload(&client, uptoken, /*NULL */key,  "E:\\compresesed.mp4");
+	err  = resumable_upload(&client, uptoken, /*NULL */key,  "E:\\Lumi\\ShouldItMatter.mp3");//E:\\compresesed.mp4
 
 	cout <<err.message;
 	cout << "*****************" << endl;
